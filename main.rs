@@ -1,6 +1,6 @@
 use image::GenericImageView;
 use tiny_http::{Response, Request, Header, Server, Method};
-use ocrs::{ImageSource, OcrEngineParams, OcrEngine, TextItem};
+use ocrs::{ImageSource, OcrEngineParams, OcrEngine};
 
 const HTML_BYTES: &[u8] = include_bytes!("index.html");
 const DETECTION_BYTES: &[u8] = include_bytes!("text-detection.rten");
@@ -29,24 +29,6 @@ where
     Ok(img_src)
 }
 
-fn text_from_img_src(engine: &OcrEngine, img_src: ImageSource) -> anyhow::Result::<String> {
-    let ocr_input = engine.prepare_input(img_src)?;
-    let word_rects = engine.detect_words(&ocr_input)?;
-    let line_rects = engine.find_text_lines(&ocr_input, &word_rects);
-    let text = engine.recognize_text(&ocr_input, &line_rects)?
-        .into_iter()
-        .flatten()
-        .filter_map(|l| {
-            let chars = l.chars();
-            if !l.chars().is_empty() {
-                Some(chars.into_iter().map(|c| c.char).collect::<String>())
-            } else {
-                None
-            }
-        }).collect();
-    Ok(text)
-}
-
 fn main() -> anyhow::Result::<()> {
     let addr = format!("{ADDR}:{PORT}");
     let server = Server::http(&addr).unwrap();
@@ -66,7 +48,8 @@ fn main() -> anyhow::Result::<()> {
         match (rq.method(), rq.url()) {
             (&Method::Post, "/img2txt") => {
                 let img_src = img_src_from_bytes(rq.as_reader())?;
-                let string = text_from_img_src(&engine, img_src)?;
+                let ocr_input = engine.prepare_input(img_src)?;
+                let string = engine.get_text(&ocr_input)?;
                 serve_bytes(rq, string.as_bytes(), "text/plain")
             }
             _ => serve_bytes(rq, HTML_BYTES, "text/html; charset=UTF-8")
