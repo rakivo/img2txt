@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Text</title>
+    <style>
+      body {
+          font-family: Arial, sans-serif;
+          margin: 20px;
+          padding: 0;
+          text-align: center;
+      }
+      h1 {
+          font-size: 24px;
+          margin-bottom: 10px;
+      }
+      #drop-area {
+          width: 300px;
+          height: 300px;
+          border: 2px dashed #ccc;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin: 20px auto;
+          cursor: pointer;
+          color: #666;
+          font-size: 16px;
+          transition: background-color 0.3s, border-color 0.3s;
+      }
+      #drop-area.dragover {
+          background-color: rgba(0, 0, 0, 0.05);
+          border-color: #666;
+      }
+      #file-input {
+          display: none;
+      }
+      #result {
+          margin-top: 20px;
+          text-align: left;
+          max-width: 600px;
+          margin: 20px auto;
+      }
+      #text-output {
+          width: 100%;
+          min-height: 200px;
+          padding: 15px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          background-color: #f9f9f9;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          font-family: monospace;
+          font-size: 14px;
+          color: #333;
+      }
+      #copy-btn {
+          display: inline-block;
+          margin-top: 10px;
+          padding: 10px 15px;
+          font-size: 14px;
+          color: #fff;
+          background-color: #007bff;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+      }
+      #copy-btn:hover {
+          background-color: #0056b3;
+      }
+      #copy-btn:active {
+          background-color: #003f7f;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Drop Image Here or Click to Browse</h1>
+    <div id="drop-area">Drop Image Here</div>
+    <input type="file" id="file-input" accept="image/*" />
+    <div id="result">
+      <h2>Received Text:</h2>
+      <pre id="text-output"></pre>
+      <button id="copy-btn" hidden>Copy to Clipboard</button>
+    </div>
+
+    <script>
+      const dropArea = document.getElementById("drop-area");
+      const textOutput = document.getElementById("text-output");
+      const fileInput = document.getElementById("file-input");
+      const copyButton = document.getElementById("copy-btn");
+
+      dropArea.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropArea.classList.add("dragover");
+      });
+
+      dropArea.addEventListener("dragleave", () => {
+          dropArea.classList.remove("dragover");
+      });
+
+      dropArea.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropArea.classList.remove("dragover");
+
+          const file = e.dataTransfer.files[0];
+          if (file && file.type.startsWith("image/")) {
+              handleImage(file);
+          } else {
+              alert("Please drop a valid image file.");
+          }
+      });
+
+      dropArea.addEventListener("click", () => {
+          fileInput.click();
+      });
+
+      fileInput.addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file && file.type.startsWith("image/")) {
+              handleImage(file);
+          } else {
+              alert("Please select a valid image file.");
+          }
+      });
+
+      async function handleImage(file) {
+          const reader = new FileReader();
+          reader.onload = async () => {
+              const imageBytes = new Uint8Array(reader.result);
+
+              try {
+                  const response = await fetch("/img2txt", {
+                      method: "POST",
+                      body: imageBytes
+                  });
+
+                  if (!response.ok) {
+                      throw new Error("Failed to process image");
+                  }
+
+                  const text = await response.text();
+                  formatAndDisplayText(text);
+              } catch (error) {
+                  console.error("Error:", error);
+                  alert("Error while sending the image to the server.");
+              }
+          };
+
+          reader.readAsArrayBuffer(file);
+      }
+
+      function formatAndDisplayText(text) {
+          textOutput.textContent = text.trim();
+
+          if (text.trim()) {
+              copyButton.hidden = false;
+          } else {
+              copyButton.hidden = true;
+          }
+      }
+
+      copyButton.addEventListener("click", () => {
+          const text = textOutput.textContent;
+
+          navigator.clipboard
+              .writeText(text)
+              .then(() => {
+                  alert("Text copied to clipboard!");
+              })
+              .catch((err) => {
+                  console.error("Failed to copy text: ", err);
+                  alert("Failed to copy text to clipboard.");
+              });
+      });
+    </script>
+  </body>
+</html>
