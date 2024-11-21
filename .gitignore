@@ -1,4 +1,5 @@
 *.rten
+ocr.rs
 target
 image.png
 Cargo.lock
