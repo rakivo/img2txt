@@ -21,31 +21,27 @@ fn serve_bytes(request: Request, bytes: &[u8], content_type: &str) -> Result::<(
     Ok(())
 }
 
-fn stbi_read_image(bytes: &[u8]) -> Result::<(&[u8], Dims)> {
+unsafe fn stbi_read_image(bytes: &[u8]) -> Result::<(&[u8], Dims)> {
     // assuming rgb
     const CHANNELS: i32 = 3;
 
     let mut w = 0;
     let mut h = 0;
-    let data_ptr = unsafe {
-        stb_image::stbi_load_from_memory(
-            bytes.as_ptr(),
-            bytes.len() as _,
-            &mut w,
-            &mut h,
-            std::ptr::null_mut(),
-            CHANNELS
-        )
-    };
+    let ptr = stb_image::stbi_load_from_memory(
+        bytes.as_ptr(),
+        bytes.len() as _,
+        &mut w,
+        &mut h,
+        std::ptr::null_mut(),
+        CHANNELS
+    );
 
-    if data_ptr.is_null() {
+    if ptr.is_null() {
         return Err(anyhow::anyhow!("failed to load image from memory"))
     }
 
-    let data_len = (w * h * CHANNELS) as usize;
-    let data_slice = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
-
-    Ok((data_slice, (w as _, h as _)))
+    let data = std::slice::from_raw_parts(ptr, (w * h * CHANNELS) as usize);
+    Ok((data, (w as _, h as _)))
 }
 
 #[inline]
@@ -56,7 +52,7 @@ where
     let mut bytes = Vec::new();
     bytes.try_reserve_exact(cap)?;
     r.read_to_end(&mut bytes)?;
-    let (data, dims) = stbi_read_image(bytes.leak())?;
+    let (data, dims) = unsafe { stbi_read_image(bytes.leak())? };
     let img_src = ImageSource::from_bytes(data, dims)?;
     Ok(img_src)
 }
