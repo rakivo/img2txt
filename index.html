@@ -77,7 +77,7 @@
   <body>
     <h1>Drop Image Here or Click to Browse</h1>
     <div id="drop-area">Drop Image Here</div>
-    <input type="file" id="file-input" accept="image/*" />
+    <input type="file" id="file-input" accept="image/*" multiple />
     <div id="result">
       <h2>Received Text:</h2>
       <pre id="text-output"></pre>
@@ -103,11 +103,15 @@
           e.preventDefault();
           dropArea.classList.remove("dragover");
 
-          const file = e.dataTransfer.files[0];
-          if (file && file.type.startsWith("image/")) {
-              handleImage(file);
-          } else {
-              alert("Please drop a valid image file.");
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+              Array.from(files).forEach((file) => {
+                  if (file.type.startsWith("image/")) {
+                      handleImage(file);
+                  } else {
+                      alert("Please drop valid image files.");
+                  }
+              });
           }
       });
 
@@ -116,11 +120,15 @@
       });
 
       fileInput.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (file && file.type.startsWith("image/")) {
-              handleImage(file);
-          } else {
-              alert("Please select a valid image file.");
+          const files = e.target.files;
+          if (files.length > 0) {
+              Array.from(files).forEach((file) => {
+                  if (file.type.startsWith("image/")) {
+                      handleImage(file);
+                  } else {
+                      alert("Please select a valid image file.");
+                  }
+              });
           }
       });
 
@@ -151,7 +159,8 @@
       }
 
       function formatAndDisplayText(text) {
-          textOutput.textContent = text.trim();
+          // Append text to existing output instead of replacing it
+          textOutput.textContent += text.trim() + "\n\n";
 
           if (text.trim()) {
               copyButton.hidden = false;

@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rayon = "1.10.0"
+if_chain = "1.0.2"
+stb_image = "0.3.0"
 ocrs = { version = "0.9.0", default-features = false }
 rten = { version = "0.13.1", default-features = false }
 anyhow = { version = "1.0.93", default-features = false }
 tiny_http = { version = "0.12.0", default-features = false }
 rten-tensor = { version = "0.14.1", default-features = false }
-image = { version = "0.25.5", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
 
 [[bin]]
 name = "img2txt"
